@@ -47,14 +47,19 @@ function App() {
     delivery: 0,
   });
   const [personsPay, setPersonsPay] = useState([]);
-  const changePayType = (event) => {
-    const value = event.target.value;
+  const [conclusion, setConclusion] = useState(null);
+  const updateOrderData = () => {
     setOrderData({
       ...orderData,
       orderPrice: personsPay.reduce((acc, person) => acc + person.price, 0),
       personsCount: personsPay.length,
     });
+  };
+  const changePayType = (event) => {
+    const value = event.target.value;
     setPayType(value);
+    updateOrderData();
+    setConclusion(null);
   };
   const changeOrderDataProp = (event, key) => {
     const value = event.target.value;
@@ -81,8 +86,24 @@ function App() {
   const addPersonPay = () => {
     setPersonsPay([...personsPay, { name: "", id: new Date().getTime(), price: 0 }]);
   };
-  const getConclusion = () => {
-    
+  const updateConclusion = () => {
+    const totalPrice = payType == "total" ?
+      (orderData.orderPrice * (orderData.percentageOfTeas / 100 + 1) + orderData.delivery) :
+      (personsPay.reduce((acc, person) => acc + person.price, 0));
+    console.log(totalPrice);
+    console.log(orderData, personsPay);
+    if (!totalPrice) return;
+
+    setConclusion(
+      {
+        totalPrice: Math.round(totalPrice),
+        personsCount: orderData.personsCount,
+        personsPayResult: personsPay.map(person => (
+          { name: person.name, price: Math.ceil(person.price * (orderData.percentageOfTeas / 100 + 1)) + orderData.delivery, id: person.id }
+        )),
+        everyPay: Math.round(totalPrice / orderData.personsCount),
+      }
+    );
   };
   const classes = useStyles();
   return (
@@ -179,10 +200,44 @@ function App() {
               ))}
           </Grid>
 
-          <Button variant="contained" color="primary">
-            Primary
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={updateConclusion}
+          >
+            Расчитать
           </Button>
         </form>
+        {conclusion ? (
+          <Grid container direction="column">
+            <Grid item>
+              <Typography variant="subtitle1">
+                Общая сумма: {conclusion.totalPrice}
+              </Typography>
+            </Grid>
+            {conclusion.personsPayResult.map(person => (
+              <Grid item key={person.id}>
+                <Typography variant="subtitle1">
+                  {person.name}: {person.price}
+                </Typography>
+              </Grid>
+            ))}
+            {payType == "total" ? (
+              <>
+                <Grid item>
+                  <Typography variant="subtitle1">
+                    Количество человек: {conclusion.personsCount} человек
+                </Typography>
+                </Grid>
+                <Grid item>
+                  <Typography variant="subtitle1">
+                    Каждый платит по: {conclusion.everyPay}
+                  </Typography>
+                </Grid>
+              </>
+            ) : null}
+          </Grid>
+        ) : null}
       </Paper>
     </Container>
   );
